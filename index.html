@@ -68,7 +68,7 @@
   }
 
   // Load the GeoJSON data
-  fetch("https://drive.google.com/uc?export=download&id=12PpniHUZJV4HHRMLPcM7IZ92puL858mY")
+  fetch("https://cors-anywhere.herokuapp.com/https://drive.google.com/uc?export=download&id=12PpniHUZJV4HHRMLPcM7IZ92puL858mY")
     .then(response => response.json())
     .then(data => {
       L.geoJson(data, {
