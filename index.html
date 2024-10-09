@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Spain Map</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script src="https://d3js.org/d3.v5.min.js"></script>  <!-- Include D3.js -->
+  <style>
+    #map { height: 700px; }
+    #title {
+      text-align: center;
+      font-size: 18px;
+      margin-bottom: 10px;
+      font-weight: bold;
+      font-family: 'Roboto', sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Title Section -->
+<div id="title">Change in the average monthly number of unemployed individuals per municipality from 2018 to 2019 <br>(municipalities with at least 10 unemployed individuals in both years)</div>
+
+<!-- Map Section -->
+<div id="map"></div>
+
+<script>
+  // Initialize the map
+  var map = L.map('map').setView([40, -7], 6);
+
+  // Add base tiles from Carto
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+    maxZoom: 18
+  }).addTo(map);
+
+  // Define a continuous color scale for yoy_change using d3.scaleLinear
+  var colorScale = d3.scaleLinear()
+    .domain([-50, 0, 100])  // Define the domain with a neutral 0% midpoint
+    .range(["orange", "whitesmoke", "midnightblue"]);  
+
+  // Define a style function for the polygons
+  function style(feature) {
+    var yoyPerc = feature.properties.yoy_perc;
+    if (yoyPerc === null || yoyPerc === undefined || isNaN(yoyPerc)) {
+      return {
+        fillOpacity: 0,  // Make the polygon transparent if the value is NA
+        opacity: 0
+      };
+    }
+
+    return {
+      fillColor: colorScale(yoyPerc), // Use the continuous color scale
+      weight: 0.5,
+      opacity: 1,
+      color: 'white',
+      fillOpacity: 0.7
+    };
+  }
+
+  // Add popups to display the label and yoy_change
+  function onEachFeature(feature, layer) {
+    if (feature.properties && feature.properties.label) {
+      layer.bindPopup("<strong>" + feature.properties.label + "</strong>");
+    }
+  }
+
+  // Load the GeoJSON data
+  fetch("https://drive.google.com/file/d/12PpniHUZJV4HHRMLPcM7IZ92puL858mY/view?usp=sharing")
+    .then(response => response.json())
+    .then(data => {
+      L.geoJson(data, {
+        style: style,
+        onEachFeature: onEachFeature
+      }).addTo(map);
+    });
+
+  // Create a legend for the continuous color scale with mid color
+  var legend = L.control({position: 'bottomright'});
+
+  legend.onAdd = function (map) {
+    var div = L.DomUtil.create('div', 'info legend');
+    var colorBar = L.DomUtil.create('div', 'color-bar', div);
+    colorBar.style.height = '10px';
+    var minValue = -50;  
+    var maxValue = 100;  
+    var midValue = 0;
+
+    // Create a gradient color bar for the legend
+    colorBar.style.background = 'linear-gradient(to right, ' + colorScale(minValue) + ', ' + colorScale(midValue) + ', ' + colorScale(maxValue) + ')';
+    div.appendChild(colorBar);
+
+    // Add labels for the legend
+    var labelContainer = L.DomUtil.create('div', 'legend-labels', div);
+    var minLabel = L.DomUtil.create('span', 'min-label', labelContainer);
+    minLabel.innerHTML = minValue + "%";
+    var maxLabel = L.DomUtil.create('span', 'max-label', labelContainer);
+    maxLabel.innerHTML = maxValue + "%";
+
+    minLabel.style.float = 'left';
+    maxLabel.style.float = 'right';
+
+    div.innerHTML += "<br><strong>Change in average monthly unemployment (%)</strong><br>";
+    return div;
+  };
+
+  legend.addTo(map);
+</script>
+
+</body>
+</html>
